@@ -1,0 +1,201 @@
+//
+// Copyright 2024 Formata, Inc. All rights reserved.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//    http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+//
+
+
+/**
+ * Generate Content Request.
+ */
+type GRequest {
+    contents: vec = [];
+    tools?: vec;
+    toolConfig?: GToolConfig;
+    safetySettings?: vec;
+    systemInstruction?: GContent; // text only
+    generationConfig?: GGenerationConfig;
+    cachedContent?: str;
+    response?: GResponse; // result gets parsed into this location
+
+    // Send this request to Gemini.
+    fn send(key: str, model: str = 'gemini-2.0-flash-exp', timeout: seconds = 5s): GResponse {
+        let body = stringify(self, 'json');
+        let url = 'https://generativelanguage.googleapis.com/v1beta/models/' + model + ':generateContent?key=' + key;
+        let headers = map(('Content-Type', 'application/json'));
+        
+        // (content_type: str, headers: map, body: bytes)
+        let response = HTTP.post(url, headers, body, timeout);
+        let bytes: blob = response[2];
+        drop self.response;
+        parse(bytes, response[0], 'self.response');
+
+        return self.response;
+    }
+}
+
+// Generation config.
+type GGenerationConfig {
+    stopSequences?: vec; // strings
+    responseMimeType?: str;
+    responseSchema?: GSchema;
+    responseModalities?: vec;
+    candidateCount?: int;
+    maxOutputTokens?: int;
+    temperature?: float;
+    topP?: float;
+    topK?: int;
+    seed?: int;
+    presencePenalty?: float;
+    frequencyPenalty?: float;
+    responseLogprobs?: bool;
+    logprobs?: int;
+    enableEnhancedCivicAnswers?: bool;
+    speechConfig?: obj; // https://ai.google.dev/api/generate-content#SpeechConfig
+    mediaResolution?: str;
+}
+
+// Safety setting.
+type GSafetySetting {
+    caregory: str; // https://ai.google.dev/api/generate-content#v1beta.HarmCategory
+    threshold: str; // https://ai.google.dev/api/generate-content#HarmBlockThreshold
+}
+
+// Tool config.
+type GToolConfig {
+    functionCallingConfig?: GFunctionCallingConfig;
+}
+type GFunctionCallingConfig {
+    mode?: str; // MODE_UNSPECIFIED, AUTO, ANY, NONE
+    allowedFunctionNames?: vec; // strings
+}
+
+// Tools go in the GRequest.tools array.
+type GTool {
+    functionDeclarations?: vec;
+    googleSearchRetrieval?: GGoogleSearchRetrieval;
+    codeExecution?: GCodeExecution;
+    googleSearch?: GGoogleSearch;
+}
+type GFunctionDeclaration {
+    name: str;
+    description: str;
+    parameters?: GSchema;
+    response?: GSchema;
+}
+type GSchema {
+    type: str; // TYPE_UNSPECIFIED, STRING, NUMBER, INTEGER, BOOLEAN, ARRAY, OBJECT
+    format?: str;
+    description?: str;
+    nullable?: bool;
+    enum?: vec; // strings
+    maxItems?: str; // int64 as string
+    minItems?: str; // int64 as string
+    properties?: obj; // key value pairs map
+    required?: vec; // strings
+    propertyOrdering?: vec; // strings
+    items?: GSchema;
+}
+type GGoogleSearchRetrieval {
+    dynamicRetrievalConfig: GDynamicRetrievalConfig;
+}
+type GDynamicRetrievalConfig {
+    mode: str;
+    dynamicThreshold: float;
+}
+type GCodeExecution {
+    // no fields
+}
+type GGoogleSearch {
+    // no fields
+}
+
+// Content goes in the GRequest.contents array.
+type GContent {
+    parts: vec = [];
+
+    #[schema((value: str): bool => value == null || value == 'user' || value == 'model')]
+    role?: str;
+}
+type GPart {
+    text?: str;
+    inlineData?: GBlob;
+    functionCall?: GFunctionCall;
+    functionResponse?: GFunctionResponse;
+    fileData?: GFileData;
+    executableCode?: GExecutableCode;
+    codeExecutionResult?: GCodeExecutionResult;
+}
+type GBlob {
+    mimeType: str;
+    data: str; // base64 encoded string (raw bytes)
+}
+type GFunctionCall {
+    id?: str;
+    name: str;
+    args?: obj;
+}
+type GFunctionResponse {
+    id?: str;
+    name: str;
+    response: obj;
+}
+type GFileData {
+    mimeType?: str;
+    fileUri: str;
+}
+type GExecutableCode {
+    language: str;
+    code: str;
+}
+type GCodeExecutionResult {
+    outcome: str;
+    output?: str;
+}
+
+/**
+ * Generate Content Response.
+ */
+type GResponse {
+    candidates: vec = [];
+    promptFeedback?: GPromptFeedback;
+    usageMetadata?: GUsageMetadata;
+    modelVersion?: str;
+}
+type GCandidate {
+    content: GContent;
+    finishReason?: str;
+    safetyRatings?: vec;
+    citationMetadata?: obj;
+    tokenCount?: int;
+    groundingAttributions?: vec;
+    groundingMetadata?: obj;
+    avgLogprobs?: float;
+    logprobsResult?: obj;
+    index?: int;
+}
+type GPromptFeedback {
+    blockReason?: str;
+    safetyRatings?: vec;
+}
+type GUsageMetadata {
+    promptTokenCount?: int;
+    cachedContentTokenCount?: int;
+    candidatesTokenCount?: int;
+    toolUsePromptTokenCount?: int;
+    totalTokenCount?: int;
+    promptTokensDetails?: vec;
+    cacheTokensDetails?: vec;
+    candidatesTokensDetails?: vec;
+    toolUsePromptTokensDetails?: vec;
+}

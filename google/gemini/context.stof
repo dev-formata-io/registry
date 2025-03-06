@@ -1,0 +1,54 @@
+//
+// Copyright 2024 Formata, Inc. All rights reserved.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//    http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+//
+
+import './request';
+
+
+/**
+ * Google Gemini Context API & Storage.
+ * Designed to be a #[storage] or #[api] object in a Context.
+ */
+type GContextStorage {
+    // GContent array.
+    conversation: Box<vec> = [];
+
+    // Create a request out of this conversation.
+    fn createRequest(): GRequest {
+        return new GRequest {
+            contents: super.conversation;
+        };
+    }
+
+    // Add a content to the conversation.
+    fn pushContent(content: GContent) {
+        self.box('conversation');
+        self.conversation.push(content);
+    }
+
+    // Add a text content to the conversation.
+    // Role should be null, 'user', or 'model'.
+    fn textContent(text: str, role: str = 'user') {
+        let content = new GContent {
+            role: role;
+            parts: [
+                new GPart {
+                    text: text;
+                }
+            ];
+        };
+        self.pushContent(content);
+    }
+}
