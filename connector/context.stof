@@ -1,0 +1,82 @@
+//
+// Copyright 2024 Formata, Inc. All rights reserved.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//    http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+//
+
+
+/**
+ * Context type.
+ * This is where the APIs, tools, documents, etc. that connectors need should live.
+ * Intended to be portable, this context can be sent between servers, agents, or APIs.
+ */
+type Context {
+    // APIs defined within this context.
+    // Internal interfaces used to manipulate storage, call tools, etc.
+    apis: Box<map> = box(map());
+
+    // Storage defined in this context.
+    // Used to keep conversation data, context documents, etc.
+    storage: Box<map> = box(map());
+
+    // Tools defined in this context.
+    // Additional connectors/APIs that are external facing and are optionally invoked only if needed.
+    tools: Box<map> = box(map());
+
+    // Collect the apis, storage, and tools defined in this context, by attribute.
+    // #[api] - registers an object as an API by name. (#[api("NEW NAME")] to override the object name)
+    // #[storage] - registers an object as a storage by name. (#[storage("NEW NAME")] to override the object name)
+    // #[tool] - registers an object as a tool by name. (#[tool("NEW NAME")] to override the object name)
+    #[run(-1000)]
+    fn init() {
+        for (key in self.keys()) {
+            let val = self.at(key);
+            if (isObject(val)) {
+                let attributes = self.attributes(val.name());
+                if (attributes.contains('api')) self.apis.insert(attributes.get('api').or(key), val);
+                if (attributes.contains('storage')) self.storage.insert(attributes.get('storage').or(key), val);
+                if (attributes.contains('tool')) self.tools.insert(attributes.get('tool').or(key), val);
+            }
+        }
+    }
+
+    // Get an API from this context, or a super context if attached.
+    fn api(name: str): obj {
+        let api = self.apis.get(name);
+        if (api) return api;
+        if (super.prototype() == self.prototype()) {
+            return super.api(name);
+        }
+        return null;
+    }
+
+    // Get a storage from this context, or a super context if attached.
+    fn storage(name: str): obj {
+        let storage = self.storage.get(name);
+        if (storage) return storage;
+        if (super.prototype() == self.prototype()) {
+            return super.storage(name);
+        }
+        return null;
+    }
+
+    // Get a tool from this context, or a super context if attached.
+    fn tool(name: str): obj {
+        let tool = self.tools.get(name);
+        if (tool) return tool;
+        if (super.prototype() == self.prototype()) {
+            return super.tool(name);
+        }
+        return null;
+    }
+}
