@@ -32,4 +32,11 @@ registries: {
             url: 'http://localhost:3030'
         }
     }
+
+    #[default]
+    stof: {
+        registry: {
+            url: 'https://registry.stof.dev'
+        }
+    }
 }

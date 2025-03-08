@@ -49,4 +49,18 @@ type Connector {
         let ctx = self.context();
         return if ctx ? ctx.tool(name) : null;
     }
+
+    // Get a policy from this connectors context.
+    fn policy(name: str): obj {
+        let ctx = self.context();
+        return if ctx ? ctx.policy(name) : null;
+    }
+
+    // Apply a policy on an object (schemafy).
+    // Returns true if the policy exists and the target is valid.
+    fn applyPolicy(policy: str, target: obj, removeInvalid: bool = true, removeUndefined: bool = false): bool {
+        let policy = self.policy(policy);
+        if (policy) return policy.schemafy(target, removeInvalid, removeUndefined);
+        return false;
+    }
 }

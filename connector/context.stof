@@ -33,6 +33,10 @@ type Context {
     // Additional connectors/APIs that are external facing and are optionally invoked only if needed.
     tools: Box<map> = box(map());
 
+    // Policies defined in this context.
+    // Used to keep schemas that can function as access policies.
+    policies: Box<map> = box(map());
+
     // Collect the apis, storage, and tools defined in this context, by attribute.
     // #[api] - registers an object as an API by name. (#[api("NEW NAME")] to override the object name)
     // #[storage] - registers an object as a storage by name. (#[storage("NEW NAME")] to override the object name)
@@ -46,6 +50,7 @@ type Context {
                 if (attributes.contains('api')) self.apis.insert(attributes.get('api').or(key), val);
                 if (attributes.contains('storage')) self.storage.insert(attributes.get('storage').or(key), val);
                 if (attributes.contains('tool')) self.tools.insert(attributes.get('tool').or(key), val);
+                if (attributes.contains('policy')) self.policies.insert(attributes.get('policy').or(key), val);
             }
         }
     }
@@ -76,6 +81,16 @@ type Context {
         if (tool) return tool;
         if (super.prototype() == self.prototype()) {
             return super.tool(name);
+        }
+        return null;
+    }
+
+    // Get a policy from this context, or a super context if attached.
+    fn policy(name: str): obj {
+        let policy = self.policies.get(name);
+        if (policy) return policy;
+        if (super.prototype() == self.prototype()) {
+            return super.policy(name);
         }
         return null;
     }

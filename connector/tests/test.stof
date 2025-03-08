@@ -37,6 +37,18 @@ Context context: {
             return 'this is a tool';
         }
     }
+
+    #[policy]
+    mypolicy: {
+        #[schema((value: str): bool => value != null && value.len() > 0)]
+        name: ''
+
+        #[schema((value: str): bool => value != null && value.contains('@'))]
+        email: ''
+
+        #[schema((value: int): bool => value >= 0 && value < 120)]
+        age: 0
+    }
 }
 
 
@@ -44,6 +56,22 @@ Context context: {
 Connector connector: {
     context: super.context
     ran: false
+
+    #[run]
+    Connector another: {
+        valid: false
+
+        #[run]
+        fn run() {
+            self.out = new {
+                name: 'Bob'
+                email: 'bob@formata.io'
+                age: 29
+                hello: 'dude'
+            };
+            self.valid = self.applyPolicy('mypolicy', self.out, true, true);
+        }
+    }
 
     #[run]
     fn run() {
@@ -63,5 +91,7 @@ Connector connector: {
 #[test]
 fn test() {
     self.exec();
+    pln(self.connector.another.out);
+    assert(self.connector.another.valid);
     assert(self.connector.ran);
 }
